@@ -13,6 +13,12 @@ bool isNumber(const std::string& s) {
 			return false;
 		}
 	}
+	if (s.size() >= 2) {
+		// 042, 01, 05253
+		if (s[0] == '0') {
+			return false;
+		}
+	}
 	return true;
 }
 void toLower(std::string& s) {
