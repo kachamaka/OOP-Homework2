@@ -64,12 +64,13 @@ bool Core::checkValidInput() const {
 	if (line[0] == ' ' || line[line.size() - 1] == ' ') {
 		return false;
 	}
-	short quotes = 0;
+	bool inQuotes = false;
 	for (std::size_t i = 0; i < line.size(); i++) {
 		if (line[i] == '"') {
-			quotes++;
+			inQuotes = !inQuotes;
 		}
-		if (quotes % 2 == 0) {
+		if (!inQuotes) {
+			//this is ok because at most size-2 can be ' ' 
 			if (line[i] == ' ') {
 				if (line[i + 1] == ' ') {
 					return false;
@@ -77,8 +78,7 @@ bool Core::checkValidInput() const {
 			}
 		}
 	}
-	if (quotes % 2 != 0) {
-		std::cout << quotes <<  " - ERROR PLS!\n";
+	if (inQuotes) {
 		return false;
 	}
 
@@ -275,9 +275,11 @@ void Core::executeCommand(const std::vector<std::string>& cmd) const {
 
 void Core::vehicleCommand(std::string reg, std::string desc) const {
 	VehicleList::Get().insert(reg, desc);
+	std::cout << "Vehicle successfully added! \n";
 }
 void Core::personCommand(std::string name, std::size_t id) const {
 	pL.insert(name, id);
+	std::cout << "Person successfully added! \n";
 }
 void Core::acquireCommand(std::size_t ownerID, std::string vehicleID) const {
 	Person* person = pL.getPerson(ownerID);
@@ -293,6 +295,7 @@ void Core::acquireCommand(std::size_t ownerID, std::string vehicleID) const {
 			if (vehicle->getOwner() == nullptr) {
 				person->acquireVehicle(vehicle);
 				vehicle->setOwner(person);
+				std::cout << "Person successfully acquired a vehicle! \n";
 			}
 			else {
 				throw std::invalid_argument("Vehicle already has an owner...");
@@ -317,6 +320,7 @@ void Core::releaseCommand(std::size_t ownerID, std::string vehicleID) const {
 			else {
 				person->releaseVehicle(vehicle);
 				vehicle->removeOwner();
+				std::cout << "Person successfully released a vehicle! \n";
 			}
 		}
 	}
@@ -329,6 +333,7 @@ void Core::removeCommand(std::string vehicleID) const {
 	else {
 		if (vehicle->getOwner() == nullptr) {
 			vL.remove(vehicle);
+			std::cout << "Vehicle successfully removed! \n";
 		}
 		else {
 			std::cout << "Vehicle has an owner... Confirm? [Y/n] ";
@@ -339,6 +344,7 @@ void Core::removeCommand(std::string vehicleID) const {
 				Person* owner = pL.getPerson(vehicle->getOwner()->getID());
 				owner->releaseVehicle(vehicle);
 				vL.remove(vehicle);
+				std::cout << "Vehicle successfully removed! \n";
 			}
 			else {
 				std::cout << "Aborting... \n";
@@ -354,6 +360,7 @@ void Core::removeCommand(std::size_t ownerID) const {
 	else {
 		if (person->getVehicles().size() == 0) {
 			pL.remove(person);
+			std::cout << "Person successfully removed! \n";
 		}
 		else {
 			std::cout << "Person owns vehicle(s)... Confirm? [Y/n] ";
@@ -365,6 +372,7 @@ void Core::removeCommand(std::size_t ownerID) const {
 					person->getVehicles()[i]->removeOwner();
 				}
 				pL.remove(person);
+				std::cout << "Person successfully removed! \n";
 			}
 			else {
 				std::cout << "Aborting... \n";

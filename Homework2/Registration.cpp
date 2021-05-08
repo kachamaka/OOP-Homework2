@@ -4,8 +4,8 @@
 #include "Registration.h"
 
 bool isLetter(char c) {
-	//works for upper and lower case
-	if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
+	//works for only for upper case
+	if (c >= 'A' && c <= 'Z') {
 		return true;
 	}
 	return false;

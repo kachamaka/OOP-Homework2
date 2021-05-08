@@ -1,8 +1,0 @@
-person "Martin Popov" 42
-person Ivan 1
-person Petar 2
-vehicle TX1111XH "Audi A3"
-vehicle TX2222XT BMW
-acquire 42 TX2222XT
-vehicle TX3333CX "Mercedes Benz"
-acquire 1 TX1111XH
