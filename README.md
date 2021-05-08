@@ -1,22 +1,21 @@
 # Second homework for the OOP 2020/2021 course
 
-[![Product Name Screen Shot][product-screenshot]](https://example.com)
+### How to run
 
-There are many great README templates available on GitHub, however, I didn't find one that really suit my needs so I created this enhanced one. I want to create a README template so amazing that it'll be the last one you ever need -- I think this is it.
+1. Compile all the .cpp files and get the .exe file
+2. If you want to load data, start the .exe file with the following command:
+* Homework2.exe "C:\path\to\file.txt" 
+**[please note that the input on some terminals like "Git Bash" escapes the backslash before reaching the file]**
+3. Otherwise, just start the .exe file without any arguments
+4. After that use some of these commands, or look them up by typing "?" or "help"
 
-Here's why:
-* Your time should be focused on creating something amazing. A project that solves a problem and helps others
-* You shouldn't be doing the same tasks over and over like creating a README from scratch
-* You should element DRY principles to the rest of your life :smile:
-
-Of course, no one template will serve all projects since your needs may be different. So I'll be adding more in the near future. You may also suggest changes by forking this repo and creating a pull request or opening an issue. Thanks to all the people have have contributed to expanding this template!
-
-A list of commonly used resources that I find helpful are listed in the acknowledgements.
-
-### Built With
-
-This section should list any major frameworks that you built your project using. Leave any add-ons/plugins for the acknowledgements section. Here are a few examples.
-* [Bootstrap](https://getbootstrap.com)
-* [JQuery](https://jquery.com)
-* [Laravel](https://laravel.com)
-
+	PERSON <name> <id> - adds person to the list
+	VEHICLE <registration> <description> - adds vehicle to the list
+	ACQUIRE <owner-id> <vehicle-id> - person acquires vehicle
+	RELEASE <owner-id> <vehicle-id> - person releases vehicle
+	SHOW [PEOPLE|VEHICLES|<id>] - shows information about people|vehicles or specific object
+	REMOVE <what> - removes person|vehicle from the list
+	SAVE <path> - saves data to a file
+	cls - clear console
+	exit - exit program
+  
