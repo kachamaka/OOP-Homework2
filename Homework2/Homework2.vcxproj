@@ -142,7 +142,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Core.cpp" />
-    <ClCompile Include="Homework2.cpp" />
+    <ClCompile Include="main.cpp" />
     <ClCompile Include="Person.cpp" />
     <ClCompile Include="PersonList.cpp" />
     <ClCompile Include="Registration.cpp" />
@@ -151,6 +151,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core.h" />
+    <ClInclude Include="CoreExceptions.h" />
     <ClInclude Include="Person.h" />
     <ClInclude Include="PersonList.h" />
     <ClInclude Include="Registration.h" />

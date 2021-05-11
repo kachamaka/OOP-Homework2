@@ -4,6 +4,7 @@
 #include <fstream>
 
 #include "Core.h"
+#include "CoreExceptions.h"
 #include "PersonList.h"
 #include "VehicleList.h"
 
@@ -21,14 +22,17 @@ bool isNumber(const std::string& s) {
 	}
 	return true;
 }
-void toLower(std::string& s) {
-	for (std::size_t i = 0; i < s.size(); i++) {
-		if (s[i] >= 'A' && s[i] <= 'Z') {
-			s[i] -= 'A';
-			s[i] += 'a';
+
+std::string toLower(const std::string& s) {
+	std::string str = s;
+	for (std::size_t i = 0; i < str.size(); i++) {
+		if (str[i] >= 'A' && str[i] <= 'Z') {
+			str[i] = str[i] - 'A' + 'a';
 		}
 	}
+	return str;
 }
+
 void transformPath(std::string& s) {
 	#ifdef _WIN32
 	std::string newS;
@@ -63,41 +67,29 @@ void clearConsole() {
 PersonList& pL = PersonList::Get();
 VehicleList& vL = VehicleList::Get();
 
-bool Core::checkValidInput() const {
-	if (line.size() == 0) {
-		return false;
-	}
-	if (line[0] == ' ' || line[line.size() - 1] == ' ') {
-		return false;
-	}
-	bool inQuotes = false;
-	for (std::size_t i = 0; i < line.size(); i++) {
-		if (line[i] == '"') {
-			inQuotes = !inQuotes;
+void Core::validateInput() const {
+		//validation in generic case
+		if (line.size() == 0) {
+			throw invalidCommand;
 		}
-		if (!inQuotes) {
-			//this is ok because at most size-2 can be ' ' 
-			if (line[i] == ' ') {
-				if (line[i + 1] == ' ') {
-					return false;
-				}
+
+		bool inQuotes = false;
+		for (std::size_t i = 0; i < line.size(); i++) {
+			if (line[i] == '\"') {
+				inQuotes = !inQuotes;
 			}
 		}
-	}
-	if (inQuotes) {
-		return false;
-	}
 
-	return true;
-
-}
+		if (inQuotes) {
+			throw invalidCommand;
+		}
+	}
 
 void Core::start() {
 	while (true) {
 		std::getline(std::cin, line);
 
-		std::string command = line;
-		toLower(command);
+		std::string command = toLower(line);
 		if (command == "exit") {
 			return;
 		}
@@ -122,6 +114,7 @@ void Core::start(std::string path) {
 		}
 
 		while (std::getline(file, line)) {
+			std::cout << line << " check??" << "\n";
 			parseCommand();
 		}
 	}
@@ -134,75 +127,73 @@ void Core::start(std::string path) {
 }
 
 void Core::parseCommand() const {
-	if (checkValidInput() == false) {
-		throw std::invalid_argument("Please enter a valid command. Type \"?\" for more info");
-	}
+	validateInput();
 
 	std::vector<std::string> commandArguments;
 
-	std::size_t firstSpaceIndex = line.find(' ');
-	if (firstSpaceIndex == std::string::npos) {
-		std::string cmd = line;
-		toLower(cmd);
-		commandArguments.push_back(cmd);
-	}
-	else {
-		std::string cmd = line.substr(0, firstSpaceIndex);
-		toLower(cmd);
-		commandArguments.push_back(cmd);
+	std::size_t argStart = 0;
+	std::size_t argEnd = 0;
 
-		std::size_t startOfSecondArgument = 0;
+	bool inQuotes = false;
+	bool inWord = false;
 
-		//firstspaceindex + 1 is valid because checkValidInput()
-		if (line[firstSpaceIndex + 1] == '"') {
-			//first arg starts and ends with quote ["]
-			std::size_t endOfFirstArgument = line.find('"', firstSpaceIndex + 2);
-			if (line[endOfFirstArgument + 1] != ' ') {
-				throw std::invalid_argument("Please enter a valid command. Type \"?\" for more info");
+	for (std::size_t i = 0; i < line.size(); i++) {
+		if (!inWord) {
+			if (line[i] == '\"') {
+				if (!inQuotes) {
+					argStart = i + 1;
+				}
+				inQuotes = !inQuotes;
 			}
-
-			//index of beginning of a word
-			std::size_t startOfFirstArgument = firstSpaceIndex + 2;
-			commandArguments.push_back(line.substr(startOfFirstArgument, endOfFirstArgument - startOfFirstArgument));
-
-			//index after space after first arg
-			startOfSecondArgument = endOfFirstArgument + 2;
+			if (!inQuotes) {
+				if (line[i] == ' ') {
+					argStart = i + 1;
+					continue;
+				}
+				else {
+					//line[i] is " or letter
+					if (line[i] == '\"') {
+						//after exiting quotes iteration
+						argEnd = i;
+						commandArguments.push_back(line.substr(argStart, argEnd - argStart));
+						argStart = argEnd + 1;
+						continue;
+					}
+					else {
+						argStart = i;
+						if (i == line.size() - 1) {
+							//catch one letter word case at the end
+							argEnd = line.size();
+							commandArguments.push_back(line.substr(argStart, argEnd - argStart));
+						}
+						inWord = true;
+					}
+				}
+			}
 		}
 		else {
-			//first arg has no quotes ["]
-			std::size_t secondSpaceIndex = line.find(' ', firstSpaceIndex + 1);
-			if (secondSpaceIndex == std::string::npos) {
-				commandArguments.push_back(line.substr(firstSpaceIndex + 1));
-				startOfSecondArgument = std::string::npos;
+			if (line[i] == ' ') {
+				argEnd = i;
+				commandArguments.push_back(line.substr(argStart, argEnd - argStart));
+				argStart = argEnd + 1;
+				inWord = false;
 			}
-			else {
-				commandArguments.push_back(line.substr(firstSpaceIndex + 1, secondSpaceIndex - firstSpaceIndex - 1));
-				startOfSecondArgument = secondSpaceIndex + 1;
-			}
-		}
-
-		if (startOfSecondArgument != std::string::npos) {
-			if (line[startOfSecondArgument] == '"') {
-				//second arg has quotes ["]
-				std::size_t endOfSecondArgument = line.find('"', startOfSecondArgument + 1);
-				//no need for check because checkValidInput()
-
-				commandArguments.push_back(line.substr(startOfSecondArgument + 1, endOfSecondArgument - startOfSecondArgument - 1));
-			}
-			else {
-				//second arg has no quotes ["]
-				//get the rest of the word
-				commandArguments.push_back(line.substr(startOfSecondArgument));
+			else if (i == line.size() - 1) {
+				argEnd = i;
+				commandArguments.push_back(line.substr(argStart, argEnd - argStart + 1));
+				inWord = false;
 			}
 		}
 	}
+
+	commandArguments[0] = toLower(commandArguments[0]);
 
 	executeCommand(commandArguments);
 }
 
 void Core::executeCommand(const std::vector<std::string>& cmd) const {
 	if (cmd.size() == 0) {
-		throw std::invalid_argument("Please enter a valid command. Type \"?\" for more info");
+		throw invalidCommand;
 	}
 	if (cmd[0] == "?" || cmd[0] == "help") {
 		printCommands();
@@ -212,7 +203,7 @@ void Core::executeCommand(const std::vector<std::string>& cmd) const {
 	}
 	else if (cmd.size() == 2) {
 		if (cmd[1] == "") {
-			throw std::invalid_argument("Please enter a valid command. Type \"?\" for more info");
+			throw invalidCommand;
 		}
 		// remove/show/save commands
 		if (cmd[0] == "remove") {
@@ -237,12 +228,12 @@ void Core::executeCommand(const std::vector<std::string>& cmd) const {
 			saveCommand(cmd[1]);
 		}
 		else {
-			throw std::invalid_argument("Unknown command. Type \"?\" for more info");
+			throw unknownCommand;
 		}
 	}
 	else if (cmd.size() == 3) {
 		if (cmd[1] == "" || cmd[2] == "") {
-			throw std::invalid_argument("Please enter a valid command. Type \"?\" for more info");
+			throw invalidCommand;
 		}
 
 		if (cmd[0] == "vehicle") {
@@ -250,52 +241,53 @@ void Core::executeCommand(const std::vector<std::string>& cmd) const {
 		}
 		else if (cmd[0] == "person") {
 			if (!isNumber(cmd[2])) {
-				throw std::invalid_argument("Please enter a valid command. Type \"?\" for more info");
+				throw invalidCommand;
 			}
 			std::size_t ownerID = std::stoi(cmd[2]);
 			personCommand(cmd[1], ownerID);
 		}
 		else if (cmd[0] == "acquire") {
 			if (!isNumber(cmd[1])) {
-				throw std::invalid_argument("Please enter a valid command. Type \"?\" for more info");
+				throw invalidCommand;
 			}
 			std::size_t ownerID = std::stoi(cmd[1]);
 			acquireCommand(ownerID, cmd[2]);
 		}
 		else if (cmd[0] == "release") {
 			if (!isNumber(cmd[1])) {
-				throw std::invalid_argument("Please enter a valid command. Type \"?\" for more info");
+				throw invalidCommand;
 			}
 			std::size_t ownerID = std::stoi(cmd[1]);
 			releaseCommand(ownerID, cmd[2]);
 		}
 		else {
-			throw std::invalid_argument("Unknown command. Type \"?\" for more info");
+			std::cout << "WHAT???????????11\n";
+			throw unknownCommand;
 		}
 	}
 	else {
-		throw std::invalid_argument("Unknown command. Type \"?\" for more info");
+		throw unknownCommand;
 	}
 
 }
 
-void Core::vehicleCommand(std::string reg, std::string desc) const {
+void Core::vehicleCommand(std::string reg, std::string desc) {
 	VehicleList::Get().insert(reg, desc);
 	std::cout << "Vehicle successfully added! \n";
 }
-void Core::personCommand(std::string name, std::size_t id) const {
+void Core::personCommand(std::string name, std::size_t id) {
 	pL.insert(name, id);
 	std::cout << "Person successfully added! \n";
 }
-void Core::acquireCommand(std::size_t ownerID, std::string vehicleID) const {
+void Core::acquireCommand(std::size_t ownerID, std::string vehicleID) {
 	Person* person = pL.getPerson(ownerID);
 	if (person == nullptr) {
-		throw std::invalid_argument("Such person doesn't exist...");
+		throw personDoesNotExist;
 	}
 	else {
 		Vehicle* vehicle = vL.getVehicle(vehicleID);
 		if (vehicle == nullptr) {
-			throw std::invalid_argument("Such vehicle doesn't exist...");
+			throw vehicleDoesNotExist;
 		}
 		else {
 			if (vehicle->getOwner() == nullptr) {
@@ -309,15 +301,15 @@ void Core::acquireCommand(std::size_t ownerID, std::string vehicleID) const {
 		}
 	}
 }
-void Core::releaseCommand(std::size_t ownerID, std::string vehicleID) const {
+void Core::releaseCommand(std::size_t ownerID, std::string vehicleID) {
 	Person* person = pL.getPerson(ownerID);
 	if (person == nullptr) {
-		throw std::invalid_argument("Such person doesn't exist...");
+		throw personDoesNotExist;
 	} 
 	else {
 		Vehicle* vehicle = vL.getVehicle(vehicleID);
 		if (vehicle == nullptr) {
-			throw std::invalid_argument("Such vehicle doesn't exist...");
+			throw vehicleDoesNotExist;
 		}
 		else {
 			if (vehicle->getOwner() != person) {
@@ -331,10 +323,10 @@ void Core::releaseCommand(std::size_t ownerID, std::string vehicleID) const {
 		}
 	}
 }
-void Core::removeCommand(std::string vehicleID) const {
+void Core::removeCommand(std::string vehicleID) {
 	Vehicle* vehicle = vL.getVehicle(vehicleID);
 	if (vehicle == nullptr) {
-		throw std::invalid_argument("Such vehicle doesn't exist...");
+		throw vehicleDoesNotExist;
 	}
 	else {
 		if (vehicle->getOwner() == nullptr) {
@@ -345,7 +337,7 @@ void Core::removeCommand(std::string vehicleID) const {
 			std::cout << "Vehicle has an owner... Confirm? [Y/n] ";
 			std::string confirm;
 			std::getline(std::cin, confirm);
-			toLower(confirm);
+			confirm = toLower(confirm);
 			if (confirm == "y" || confirm == "yes") {
 				Person* owner = pL.getPerson(vehicle->getOwner()->getID());
 				owner->releaseVehicle(vehicle);
@@ -358,10 +350,10 @@ void Core::removeCommand(std::string vehicleID) const {
 		}
 	}
 }
-void Core::removeCommand(std::size_t ownerID) const {
+void Core::removeCommand(std::size_t ownerID) {
 	Person* person = pL.getPerson(ownerID);
 	if (person == nullptr) {
-		throw std::invalid_argument("Such person doesn't exist...");
+		throw personDoesNotExist;
 	}
 	else {
 		if (person->getVehicles().size() == 0) {
@@ -372,7 +364,7 @@ void Core::removeCommand(std::size_t ownerID) const {
 			std::cout << "Person owns vehicle(s)... Confirm? [Y/n] ";
 			std::string confirm;
 			std::getline(std::cin, confirm);
-			toLower(confirm);
+			confirm = toLower(confirm);
 			if (confirm == "y" || confirm == "yes") {
 				for (std::size_t i = 0; i < person->getVehicles().size(); i++) {
 					person->getVehicles()[i]->removeOwner();
@@ -386,9 +378,8 @@ void Core::removeCommand(std::size_t ownerID) const {
 		}
 	}
 }
-void Core::showCommand(std::string vehicleID) const {
-	std::string cmd = vehicleID;
-	toLower(cmd);
+void Core::showCommand(std::string vehicleID) {
+	std::string cmd = toLower(vehicleID);
 	if (cmd == "people") {
 		if (pL.size() == 0) {
 			std::cout << "There are currently no people...\n";
@@ -417,7 +408,7 @@ void Core::showCommand(std::string vehicleID) const {
 	else {
 		Vehicle* vehicle = vL.getVehicle(vehicleID);
 		if (vehicle == nullptr) {
-			throw std::invalid_argument("Such vehicle doesn't exist...");
+			throw vehicleDoesNotExist;
 		}
 		else {
 			std::cout << "-------------------------\n";
@@ -434,10 +425,10 @@ void Core::showCommand(std::string vehicleID) const {
 		}
 	}
 }
-void Core::showCommand(std::size_t ownerID) const {
+void Core::showCommand(std::size_t ownerID) {
 	Person* person = pL.getPerson(ownerID);
 	if (person == nullptr) {
-		throw std::invalid_argument("Such person doesn't exist...");
+		throw personDoesNotExist;
 	}
 	else {
 		std::cout << "-------------------------\n";
@@ -459,7 +450,7 @@ void Core::showCommand(std::size_t ownerID) const {
 	}
 
 }
-void Core::saveCommand(std::string path) const {
+void Core::saveCommand(std::string path) {
 	std::vector<std::string> commands;
 
 	//save people
@@ -514,11 +505,12 @@ void Core::saveCommand(std::string path) const {
 		std::cout << "File already exists... Overwrite? [Y/n] ";
 		std::string confirm;
 		std::getline(std::cin, confirm);
-		toLower(confirm);
+		confirm = toLower(confirm);
 		if (confirm == "y" || confirm == "yes") {
 			for (std::size_t i = 0; i < commands.size(); i++) {
 				file << commands[i] + "\n";
 			}
+			std::cout << "Data saved successfully! \n";
 		}
 		else {
 			std::cout << "Aborting... \n";
@@ -533,7 +525,7 @@ void Core::saveCommand(std::string path) const {
 		for (std::size_t i = 0; i < commands.size(); i++) {
 			file << commands[i] + "\n";
 		}
+		std::cout << "Data saved successfully! \n";
 	}
 
 }
-
