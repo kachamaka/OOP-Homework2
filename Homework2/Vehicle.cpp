@@ -18,6 +18,6 @@ const std::string& Vehicle::getDescription() const {
 	return this->description;
 }
 
-const Person* Vehicle::getOwner() const {
+Person* Vehicle::getOwner() const {
 	return owner;
 }

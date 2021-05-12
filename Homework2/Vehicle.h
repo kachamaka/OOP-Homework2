@@ -17,5 +17,5 @@ public:
 
 	const std::string& getRegistration() const;
 	const std::string& getDescription() const;
-	const Person* getOwner() const;
+	Person* getOwner() const;
 };

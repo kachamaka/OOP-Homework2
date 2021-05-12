@@ -8,7 +8,7 @@
 #include "PersonList.h"
 #include "VehicleList.h"
 
-bool isNumber(const std::string& s) {
+bool isValidInt(const std::string& s) {
 	for (std::size_t i = 0; i < s.size(); i++) {
 		if (s[i] < '0' || s[i] >'9') {
 			return false;
@@ -207,7 +207,7 @@ void Core::executeCommand(const std::vector<std::string>& cmd) const {
 		}
 		// remove/show/save commands
 		if (cmd[0] == "remove") {
-			if (isNumber(cmd[1])) {
+			if (isValidInt(cmd[1])) {
 				std::size_t ownerID = std::stoi(cmd[1]);
 				removeCommand(ownerID);
 			}
@@ -216,7 +216,7 @@ void Core::executeCommand(const std::vector<std::string>& cmd) const {
 			}
 		}
 		else if (cmd[0] == "show") {
-			if (isNumber(cmd[1])) {
+			if (isValidInt(cmd[1])) {
 				std::size_t ownerID = std::stoi(cmd[1]);
 				showCommand(ownerID);
 			}
@@ -240,21 +240,21 @@ void Core::executeCommand(const std::vector<std::string>& cmd) const {
 			vehicleCommand(cmd[1], cmd[2]);
 		}
 		else if (cmd[0] == "person") {
-			if (!isNumber(cmd[2])) {
+			if (!isValidInt(cmd[2])) {
 				throw invalidCommand;
 			}
 			std::size_t ownerID = std::stoi(cmd[2]);
 			personCommand(cmd[1], ownerID);
 		}
 		else if (cmd[0] == "acquire") {
-			if (!isNumber(cmd[1])) {
+			if (!isValidInt(cmd[1])) {
 				throw invalidCommand;
 			}
 			std::size_t ownerID = std::stoi(cmd[1]);
 			acquireCommand(ownerID, cmd[2]);
 		}
 		else if (cmd[0] == "release") {
-			if (!isNumber(cmd[1])) {
+			if (!isValidInt(cmd[1])) {
 				throw invalidCommand;
 			}
 			std::size_t ownerID = std::stoi(cmd[1]);
@@ -293,11 +293,16 @@ void Core::acquireCommand(std::size_t ownerID, std::string vehicleID) {
 			if (vehicle->getOwner() == nullptr) {
 				person->acquireVehicle(vehicle);
 				vehicle->setOwner(person);
-				std::cout << "Person successfully acquired a vehicle! \n";
 			}
 			else {
-				throw std::invalid_argument("Vehicle already has an owner...");
+				Person* oldOwner = vehicle->getOwner();
+				oldOwner->releaseVehicle(vehicle);
+				vehicle->removeOwner();
+
+				person->acquireVehicle(vehicle);
+				vehicle->setOwner(person);
 			}
+			std::cout << "Person successfully acquired a vehicle! \n";
 		}
 	}
 }
